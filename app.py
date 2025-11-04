@@ -1,82 +1,80 @@
 import streamlit as st
 from yahooquery import search, Ticker
+import feedparser
 import pandas as pd
-import numpy as np
-import plotly.express as px
 
-# --- Page Setup ---
-st.set_page_config(page_title="Investor Insights", page_icon="💹")
+# --- App Setup ---
+st.set_page_config(page_title="Company Stock + News", page_icon="💹", layout="centered")
 
-# --- Indigo font style ---
-st.markdown("<h1 style='text-align:center; color:indigo;'>💹 Company Investor Insights</h1>", unsafe_allow_html=True)
+st.markdown("""
+    <h1 style='text-align:center; color:indigo;'>💹 Company Stock & News Insights</h1>
+    <p style='text-align:center; color:green;'>Get real-time stock prices and latest news (CEO, Mergers, Guidance) — no API key needed!</p>
+""", unsafe_allow_html=True)
 
-# --- User Input ---
+# --- Input ---
 company_name = st.text_input("Enter company name:")
 
-if st.button("Get Insights") and company_name.strip() != "":
+keywords = ["CEO", "chief executive", "merger", "acquisition", "guidance", "forecast", "outlook", "leadership", "appoints"]
+
+if st.button("Get Insights") and company_name.strip():
     company_name = company_name.strip()
 
     try:
-        # --- Get Ticker via yahooquery ---
+        # --- Step 1: Find Ticker ---
         results = search(company_name)
-        if not results['quotes']:
-            st.warning("No ticker found for this company.")
+        if not results.get("quotes"):
+            st.warning("⚠️ No ticker found for this company.")
         else:
-            # Take first match
-            ticker_symbol = results['quotes'][0]['symbol']
-            description = results['quotes'][0]['shortname'] or results['quotes'][0]['symbol']
+            ticker_info = results["quotes"][0]
+            ticker_symbol = ticker_info.get("symbol", "N/A")
+            description = ticker_info.get("shortname", company_name)
 
-            st.markdown(f"<h2 style='color:indigo;'>{description} ({ticker_symbol})</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='color:indigo;'>{description}</h2>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:green;'><b>Ticker Symbol:</b> {ticker_symbol}</p>", unsafe_allow_html=True)
 
-            # --- Fetch Historical Stock Data ---
-            stock = Ticker(ticker_symbol)
-            df_stock = stock.history(period="max")
-
-            if df_stock.empty:
-                st.warning("No historical data found for this ticker.")
-            else:
-                df_stock_reset = df_stock.reset_index()
-                if 'date' not in df_stock_reset.columns:
-                    df_stock_reset = df_stock_reset.rename(columns={df_stock_reset.columns[0]: 'date'})
-
-                # --- Better Chart ---
-                fig = px.line(
-                    df_stock_reset, x='date', y='close',
-                    title=f"{description} Closing Price",
-                    labels={'close': 'Closing Price', 'date': 'Date'},
-                    template='plotly_dark',  # dark theme
-                )
-                fig.update_traces(line_color='indigo', line_width=3)
-                fig.update_layout(
-                    title_font=dict(size=20, color='indigo'),
-                    xaxis_title_font=dict(size=16, color='indigo'),
-                    yaxis_title_font=dict(size=16, color='indigo'),
-                    hovermode='x unified'
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-                # --- Investor Insights ---
-                df_stock_reset['Return'] = df_stock_reset['close'].pct_change()
-                df_stock_reset['Year'] = pd.DatetimeIndex(df_stock_reset['date']).year
-                yearly_return = df_stock_reset.groupby('Year')['close'].last().pct_change().mean() * 100
-                volatility = df_stock_reset['Return'].std() * np.sqrt(252) * 100
-
-                if len(df_stock_reset) > 252:
-                    if df_stock_reset['close'].iloc[-1] > df_stock_reset['close'].iloc[-252]:
-                        trend = "uptrend 📈"
-                    elif df_stock_reset['close'].iloc[-1] < df_stock_reset['close'].iloc[-252]:
-                        trend = "downtrend 📉"
-                    else:
-                        trend = "sideways ↔️"
+            # --- Step 2: Latest Stock Price ---
+            try:
+                stock = Ticker(ticker_symbol)
+                price_data = stock.price.get(ticker_symbol, {})
+                current_price = price_data.get("regularMarketPrice", "N/A")
+                currency = price_data.get("currency", "")
+                if current_price != "N/A":
+                    st.success(f"💰 **Current Stock Price:** {current_price} {currency}")
                 else:
-                    trend = "Not enough data"
+                    st.info("Stock price not available right now.")
+            except Exception as e:
+                st.error(f"Couldn't fetch stock price: {e}")
 
-                st.markdown("<h3 style='color:indigo;'>💡 Investor Insights</h3>", unsafe_allow_html=True)
-                st.markdown(f"<p style='color:indigo;'>- <b>Average Annual Return:</b> {yearly_return:.2f}%</p>",
-                            unsafe_allow_html=True)
-                #st.markdown(f"<p style='color:indigo;'>- <b>Annualized Volatility:</b> {volatility:.2f}%</p>",
-                            #unsafe_allow_html=True)
-                st.markdown(f"<p style='color:indigo;'>- <b>Current Trend:</b> {trend}</p>", unsafe_allow_html=True)
+            st.divider()
+
+            # --- Step 3: Fetch News ---
+            rss_url = f"https://news.google.com/rss/search?q={company_name}"
+            news_feed = feedparser.parse(rss_url)
+
+            if not news_feed.entries:
+                st.warning("⚠️ No recent news found for this company.")
+            else:
+                st.subheader(f"🗞️ Latest 11 News about {description}")
+
+                # Filter for leadership / merger / guidance
+                important_news = []
+                for entry in news_feed.entries[:20]:
+                    title_lower = entry.title.lower()
+                    if any(word in title_lower for word in [k.lower() for k in keywords]):
+                        important_news.append(entry)
+
+                # If none found, show normal top 11
+                if not important_news:
+                    st.info("No CEO / merger / guidance news found — showing latest 11 headlines.")
+                    news_to_display = news_feed.entries[:11]
+                else:
+                    st.success(f"🔍 Found {len(important_news)} leadership / guidance updates!")
+                    news_to_display = important_news[:11]
+
+                for i, entry in enumerate(news_to_display, start=1):
+                    st.markdown(f"### {i}. [{entry.title}]({entry.link})")
+                    st.caption(entry.published)
+                    st.divider()
 
     except Exception as e:
-        st.error(f"Error fetching data: {e}")
+        st.error(f"❌ Error fetching data: {e}")
