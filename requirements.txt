@@ -1,5 +1,6 @@
 streamlit
 yahooquery
 pandas
+feedparser
 numpy
 plotly
