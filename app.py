@@ -45,36 +45,7 @@ if st.button("Get Insights") and company_name.strip():
             except Exception as e:
                 st.error(f"Couldn't fetch stock price: {e}")
 
-            st.divider()
-
-            # --- Step 3: Fetch News ---
-            rss_url = f"https://news.google.com/rss/search?q={company_name}"
-            news_feed = feedparser.parse(rss_url)
-
-            if not news_feed.entries:
-                st.warning("⚠️ No recent news found for this company.")
-            else:
-                st.subheader(f"🗞️ Latest 11 News about {description}")
-
-                # Filter for leadership / merger / guidance
-                important_news = []
-                for entry in news_feed.entries[:20]:
-                    title_lower = entry.title.lower()
-                    if any(word in title_lower for word in [k.lower() for k in keywords]):
-                        important_news.append(entry)
-
-                # If none found, show normal top 11
-                if not important_news:
-                    st.info("No CEO / merger / guidance news found — showing latest 11 headlines.")
-                    news_to_display = news_feed.entries[:11]
-                else:
-                    st.success(f"🔍 Found {len(important_news)} leadership / guidance updates!")
-                    news_to_display = important_news[:11]
-
-                for i, entry in enumerate(news_to_display, start=1):
-                    st.markdown(f"### {i}. [{entry.title}]({entry.link})")
-                    st.caption(entry.published)
-                    st.divider()
-
+            
     except Exception as e:
         st.error(f"❌ Error fetching data: {e}")
+
