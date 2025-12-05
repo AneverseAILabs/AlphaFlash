@@ -1,6 +1,7 @@
-streamlit
-yahooquery
-pandas
-feedparser
-numpy
-plotly
+streamlit==1.27.0
+yahooquery==2.2.5
+yfinance==0.2.27
+feedparser==6.0.10
+pandas==2.1.1
+matplotlib==3.8.1
+plotly==5.22.0
