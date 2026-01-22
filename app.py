@@ -157,7 +157,7 @@ if st.button("Get Insights") and company_name.strip():
                         labels={'x': 'Keyword', 'y': 'Count'},
                         color_discrete_sequence=['indigo']
                     )
-                    st.plotly_chart(fig_kw, use_container_width=True)
+                    #st.plotly_chart(fig_kw, use_container_width=True)
 
                 if date_count:
                     st.markdown("<h3 style='color:indigo;'>News Over Time</h3>", unsafe_allow_html=True)
@@ -170,7 +170,8 @@ if st.button("Get Insights") and company_name.strip():
                         markers=True
                     )
                     fig_date.update_traces(line_color='indigo')
-                    st.plotly_chart(fig_date, use_container_width=True)
+                    #st.plotly_chart(fig_date, use_container_width=True)
 
     except Exception as e:
         st.error(f"❌ Error fetching data: {e}")
+
