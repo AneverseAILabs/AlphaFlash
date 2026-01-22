@@ -148,30 +148,7 @@ if st.button("Get Insights") and company_name.strip():
                             keyword_count[k] += 1
                     date_count[entry.published[:10]] += 1
 
-                # --- Step 6: Charts for News ---
-                if keyword_count:
-                    st.markdown("<h3 style='color:indigo;'>Keyword Frequency in Headlines</h3>", unsafe_allow_html=True)
-                    fig_kw = px.bar(
-                        x=list(keyword_count.keys()),
-                        y=list(keyword_count.values()),
-                        labels={'x': 'Keyword', 'y': 'Count'},
-                        color_discrete_sequence=['indigo']
-                    )
-                    #st.plotly_chart(fig_kw, use_container_width=True)
-
-                if date_count:
-                    st.markdown("<h3 style='color:indigo;'>News Over Time</h3>", unsafe_allow_html=True)
-                    dates_sorted = sorted(date_count.keys())
-                    counts_sorted = [date_count[d] for d in dates_sorted]
-                    fig_date = px.line(
-                        x=dates_sorted,
-                        y=counts_sorted,
-                        labels={'x': 'Date', 'y': 'Number of Articles'},
-                        markers=True
-                    )
-                    fig_date.update_traces(line_color='indigo')
-                    #st.plotly_chart(fig_date, use_container_width=True)
-
     except Exception as e:
         st.error(f"❌ Error fetching data: {e}")
+
 
